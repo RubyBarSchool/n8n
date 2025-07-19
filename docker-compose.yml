@@ -1,0 +1,81 @@
+version: "3.8"
+
+services:
+  postgres:
+    image: postgres:15
+    container_name: n8n_database
+    restart: always
+    environment:
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: Abc@12345@
+      POSTGRES_DB: n8ndb
+    volumes:
+      - /d/n8n/database:/var/lib/postgresql/data
+
+  pgadmin:
+    image: dpage/pgadmin4
+    container_name: pgadmin-container
+    restart: always
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@truongtv.com
+      PGADMIN_DEFAULT_PASSWORD: admin123
+    ports:
+      - "8080:80"
+    depends_on:
+      - postgres
+
+  n8n:
+    image: n8nio/n8n
+    container_name: n8n
+    restart: always
+    ports:
+      - "5678:5678"
+    environment:
+      DB_TYPE: postgresdb
+      DB_POSTGRESDB_HOST: postgres
+      DB_POSTGRESDB_PORT: 5432
+      DB_POSTGRESDB_DATABASE: n8ndb
+      DB_POSTGRESDB_USER: admin
+      DB_POSTGRESDB_PASSWORD: Abc@12345@
+
+      N8N_BASIC_AUTH_ACTIVE: "true"
+      N8N_BASIC_AUTH_USER: admin
+      N8N_BASIC_AUTH_PASSWORD: Abc@12345@
+
+      N8N_HOST: localhost
+      N8N_PORT: 5678
+      WEBHOOK_TUNNEL_URL: http://localhost:5678
+      GENERIC_TIMEZONE: Asia/Ho_Chi_Minh
+
+      DB_POSTGRESDB_SCHEMA: public
+      DB_TABLE_PREFIX: n8n_
+      N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS: "true"
+      N8N_RUNNERS_ENABLED: "true"
+      OFFLOAD_MANUAL_EXECUTIONS_TO_WORKERS: "true"
+      N8N_LOG_LEVEL: debug
+      EXECUTIONS_MODE: regular
+      QUEUE_MODE: none
+      # N8N_REDIS_HOST: redis
+      # N8N_REDIS_PORT: 6379
+      # N8N_REDIS_CONNECTION_TIMEOUT: 30000
+      # N8N_REDIS_CONNECTION_RETRY_COUNT: 5
+      
+
+    depends_on:
+        postgres:
+          condition: service_started
+        redis:
+          condition: service_healthy
+
+  redis:
+    image: redis:7
+    container_name: redis
+    restart: always
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
